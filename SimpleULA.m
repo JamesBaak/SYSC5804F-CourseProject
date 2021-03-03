@@ -8,18 +8,21 @@
 % By: Ben Earle (BenEarle@cmail.carleton.ca)                              %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %DEFN FROM PAPER ON NOMP
+c = physconst('lightspeed'); % speed of light in m/s
 fftPoints = 2048;
 df = 75 * 10^3; %hz
 BW = 90 * 10^6; %hz
 fc =3.5 * 10^9; %hz
 pt = -20;% dbm (transmit power)
+lambda = c / fc; % carrier wavelength in m
+d = lambda / 2; % distance between antennas in m
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Simple ULA transmission
 
 v = 15.0;                    % UE velocity in km/h
 %fc = 4e9;                    % carrier frequency in Hz
-c = physconst('lightspeed'); % speed of light in m/s
+
 fd = (v*1000/3600)/c*fc;     % UE max Doppler frequency in Hz
  
 cdl = nrCDLChannel;
@@ -44,10 +47,10 @@ chInfo = info(cdl);
 rxWaveform = cdl(txWaveform);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% General defs
+% Channel Reconstruction
 N = 52; % Sub-carrier count
 M = 64; % Antenna count
-df = 15000 % Distance between subcarriers
+
 % Get the set of path components from the channel model.
 L = length(chInfo.PathDelays);
 tau = chInfo.PathDelays;
@@ -57,27 +60,43 @@ tau = chInfo.PathDelays;
 theta = chInfo.AnglesAoA;
 gul = chInfo.AveragePathGains;
 
-% Calculate the stacked vectors
+% Reconstruct the channel using method from NOMP paper
 
 
-% a(theta)
-p(tau(10), N, df)
-
-
-
-%hul = 
-
-
-
-
-
-function out = a(theta, M, dF)
-    m = -M/2:(M/2-1);
-    
-    
-    out = 1;
+% Temporarily initialize the h to the exact size I am getting from kron
+h = zeros(3328,1);
+for i = 1 : length(theta)
+    x = a(theta(10), M, d, lambda);
+    y = p(tau(10), N, df);
+    k = kron(x, y);
+    h = h + gul(i) .* k;
 end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Function defs
+% a() returns the steering vector for a given angle
+% Input:
+%    theta - angle of the received path
+%    M     - antenna count
+%    d     - distance between antennas
+%    labda - wavelength of the carrier
+% Output:
+%    out   - 
+
+function out = a(theta, M, d, lambda)
+    m = -M/2:(M/2-1);
+    out = exp(1j*2*pi*m*d*lambda*sin(theta))';
+end
+
+% p() returns the steering vector for a given angle
+% Input:
+%    tau   - received path
+%    M     - antenna count
+%    df    - subcarrier spacing
+% Output:
+%    out   - steering vector of the ULA
 function out = p(tau, N, df)
     n = -N/2:(N/2-1);
-    out = exp(j*2*pi*n*df*tau)';
+    out = exp(1j*2*pi*n*df*tau)';
 end
