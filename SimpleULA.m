@@ -27,9 +27,11 @@ fd = (v*1000/3600)/c*fc;     % UE max Doppler frequency in Hz
  
 cdl = nrCDLChannel;
 cdl.DelayProfile = 'CDL-D';
-cdl.DelaySpread = 10e-9;
+%cdl.DelaySpread = 10e-9;
+cdl.DelaySpread = 0;
 cdl.CarrierFrequency = fc;
-cdl.MaximumDopplerShift = fd;
+% cdl.MaximumDopplerShift = fd;
+cdl.MaximumDopplerShift = 0;
 
 cdl.TransmitAntennaArray.Size = [1 1 1 1 1];
 cdl.ReceiveAntennaArray.Size = [64 1 1 1 1];
@@ -40,7 +42,7 @@ cdl.SampleRate = SR;
 cdlinfo = info(cdl);
 Nt = cdlinfo.NumTransmitAntennas;
  
-txWaveform = ones(T,Nt);
+txWaveform = ones(52,Nt);
 
 chInfo = info(cdl);
 
@@ -57,7 +59,7 @@ tau = chInfo.PathDelays;
 % I do not know what anlge I should be using... hmmm
 % Likely CDL channel definition with antennas along x axis means I should
 % use a specific one, but which one? IDK yet
-theta = chInfo.AnglesAoA;
+theta = chInfo.AnglesZoA;
 gul = chInfo.AveragePathGains;
 
 % Reconstruct the channel using method from NOMP paper
@@ -66,11 +68,11 @@ gul = chInfo.AveragePathGains;
 % Temporarily initialize the h to the exact size I am getting from kron
 h = zeros(64,52);
 for i = 1 : length(theta)
-    x = a(theta(10), M, d, lambda);
-    y = p(tau(10), N, df)';
-    k = kron(x, y);
-    h = h + gul(i) .* k;
+    h = h + gul(i) .* kron(a(theta(i), M, d, lambda), p(tau(i), N, df)');
 end
+
+disp("Error: ");
+mean(mean(h'-rxWaveform))
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
