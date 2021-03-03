@@ -64,10 +64,10 @@ gul = chInfo.AveragePathGains;
 
 
 % Temporarily initialize the h to the exact size I am getting from kron
-h = zeros(3328,1);
+h = zeros(64,52);
 for i = 1 : length(theta)
     x = a(theta(10), M, d, lambda);
-    y = p(tau(10), N, df);
+    y = p(tau(10), N, df)';
     k = kron(x, y);
     h = h + gul(i) .* k;
 end
