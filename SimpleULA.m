@@ -27,11 +27,11 @@ fd = (v*1000/3600)/c*fc;     % UE max Doppler frequency in Hz
  
 cdl = nrCDLChannel;
 cdl.DelayProfile = 'CDL-D';
-%cdl.DelaySpread = 10e-9;
-cdl.DelaySpread = 0;
+cdl.DelaySpread = 10e-9;
+%cdl.DelaySpread = 0;
 cdl.CarrierFrequency = fc;
-% cdl.MaximumDopplerShift = fd;
-cdl.MaximumDopplerShift = 0;
+cdl.MaximumDopplerShift = fd;
+%cdl.MaximumDopplerShift = 0;
 
 cdl.TransmitAntennaArray.Size = [1 1 1 1 1];
 cdl.ReceiveAntennaArray.Size = [1 8 1 1 1];
@@ -47,8 +47,10 @@ txWaveform = ones(52,Nt);
 
 chInfo = info(cdl);
 
+% The first time we pass the signal through the CDL channel the first 7 
+% subcarriers receive zero value on each antenna, I don't really understand
+% why that is... Running it the second time does not have this issue.
 [rxWaveform, pathGains] = cdl(txWaveform);
-
 [rxWaveform, pathGains] = cdl(txWaveform);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -75,8 +77,8 @@ for i = 1 : length(theta)
 %    h = h + gul(i) .* a(theta(i), M, d, lambda) * p(tau(i), N, df)';
 end
 
-disp("Error: ");
-mean(mean(h-rxWaveform))
+disp("MSE: ");
+mean(mean((h-rxWaveform).^2))
 k = kron(p(tau(i), N, df), a(theta(i), M, d, lambda));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
