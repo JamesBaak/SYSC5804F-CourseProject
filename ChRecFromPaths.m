@@ -1,6 +1,6 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                               SimpleULA.m                               %
-%                             ---------------                             %
+%                             ChRecFromPaths.m                            %
+%                            ------------------                           %
 %   Script attempting to recreate NOMP channel reconstruction. I want to  %
 % compare the channel generated using the path components to the actual   %
 % channel used by 5G toolbox.                                             %
