@@ -34,38 +34,38 @@ CUSTOM = 1;
 cdl = nrCDLChannel;
 
 x = nrCDLChannel;
-x.DelayProfile = 'CDL-E';
+x.DelayProfile = 'CDL-A';
 starterCDL = info(x);
 
 if CUSTOM
-%     cdl.DelayProfile = 'custom';
-%     cdl.PathDelays = starterCDL.PathDelays; % [0 0.022 0.214 0.95] .* 1.0e-03;
-% %     cdl.AveragePathGains = starterCDL.AveragePathGains + ones(size(starterCDL.AveragePathGains)); % [1 1 1 1];
-%     cdl.AveragePathGains = ones(size(starterCDL.AveragePathGains)); % [1 1 1 1];
-%     cdl.AnglesAoA = starterCDL.AnglesAoA; % [12 36 -27 -123];
-%     cdl.AnglesZoA = starterCDL.AnglesZoA; % [12 -36 27 123];
-%     cdl.AnglesAoD = starterCDL.AnglesAoD; % [12 36 27 123];
-%     cdl.AnglesZoD = starterCDL.AnglesZoD; % [-12 36 27 -123];
-%     cdl.HasLOSCluster = false; % default
-%     % cdl.KFactorFirstCluster = 13.3; % default
-%     cdl.AngleSpreads = [90.0 90.0 40.0 13.0]; % [ASD ASA ZSD ZSA] 
-%     cdl.XPR = 10; % default, crosspolarization power in db
-%     cdl.NumStrongestClusters = 0; % default
-    
-    
     cdl.DelayProfile = 'custom';
-    cdl.PathDelays = [0 5 10 12] .* 10^-5;
-%     cdl.AveragePathGains = starterCDL.AveragePathGains + ones(size(starterCDL.AveragePathGains)); % [1 1 1 1];
-    cdl.AveragePathGains = [15 -1 -12 -5]; % [1 1 1 1];
-    cdl.AnglesAoA = [15 45 45 -45]; % [12 36 -27 -123];
-    cdl.AnglesZoA = [15 45 90 -45]; % [12 -36 27 123];
-    cdl.AnglesAoD = [0 0 0 0]; % [12 36 27 123];
-    cdl.AnglesZoD = [0 0 0 0]; % [-12 36 27 -123];
+    cdl.PathDelays = starterCDL.PathDelays .* 1000; % [0 0.022 0.214 0.95] .* 1.0e-03;
+%     cdl.AveragePathGains = starterCDL.AveragePathGains; % [1 1 1 1];
+    cdl.AveragePathGains = ones(size(starterCDL.AveragePathGains)); % [1 1 1 1];
+    cdl.AnglesAoA = starterCDL.AnglesAoA; % [12 36 -27 -123];
+    cdl.AnglesZoA = starterCDL.AnglesZoA; % [12 -36 27 123];
+    cdl.AnglesAoD = starterCDL.AnglesAoD; % [12 36 27 123];
+    cdl.AnglesZoD = starterCDL.AnglesZoD; % [-12 36 27 -123];
     cdl.HasLOSCluster = false; % default
     % cdl.KFactorFirstCluster = 13.3; % default
-    cdl.AngleSpreads = [0 0 0.0 0]; % [ASD ASA ZSD ZSA] 
-    cdl.XPR = 0; % default, crosspolarization power in db
+    cdl.AngleSpreads = [0 0 0 0]; % [ASD ASA ZSD ZSA] 
+    cdl.XPR = 10; % default, crosspolarization power in db
     cdl.NumStrongestClusters = 0; % default
+    
+    
+%     cdl.DelayProfile = 'custom';
+%     cdl.PathDelays = [0 5 10 12] .* 10^-5;
+% %     cdl.AveragePathGains = starterCDL.AveragePathGains + ones(size(starterCDL.AveragePathGains)); % [1 1 1 1];
+%     cdl.AveragePathGains = [15 -1 -12 -5]; % [1 1 1 1];
+%     cdl.AnglesAoA = [15 45 45 -45]; % [12 36 -27 -123];
+%     cdl.AnglesZoA = [15 45 90 -45]; % [12 -36 27 123];
+%     cdl.AnglesAoD = [0 0 0 0]; % [12 36 27 123];
+%     cdl.AnglesZoD = [0 0 0 0]; % [-12 36 27 -123];
+%     cdl.HasLOSCluster = false; % default
+%     % cdl.KFactorFirstCluster = 13.3; % default
+%     cdl.AngleSpreads = [0 0 0.0 0]; % [ASD ASA ZSD ZSA] 
+%     cdl.XPR = 0; % default, crosspolarization power in db
+%     cdl.NumStrongestClusters = 0; % default
 else
     cdl.DelayProfile = 'CDL-A';
     cdl.DelaySpread = 10e-9;
@@ -108,6 +108,8 @@ chInfo = info(cdl);
 % subcarriers receive zero value on each antenna, I don't really understand
 % why that is... Running it the second time does not have this issue.
 [rxWaveform, pathGains] = cdl(txWaveform);
+noise = db2mag(-400) .* complex(randn(size(rxWaveform)),randn(size(rxWaveform)));
+rxWaveform = rxWaveform + noise;
 
 rx = nrOFDMDemodulate(c,rxWaveform);
 
@@ -117,11 +119,11 @@ rx = nrOFDMDemodulate(c,rxWaveform);
 % YOLO PAPER IMAGE GENERATION
 
 % Oversampling factors
-alpha = 16;
+alpha = 12;
 beta = 1;
 
 % Max after normalization
-delta = 10000;
+delta = 1000;
 
 % Received waveform Y 
 Y =  squeeze(rx).';
