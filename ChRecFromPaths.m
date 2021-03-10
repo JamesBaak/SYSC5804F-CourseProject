@@ -7,6 +7,7 @@
 %                                                                         %
 % By: Ben Earle (BenEarle@cmail.carleton.ca)                              %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %DEFN FROM PAPER ON NOMP
 c = physconst('lightspeed'); % speed of light in m/s
 fftPoints = 2048;
@@ -27,11 +28,11 @@ fd = (v*1000/3600)/c*fc;     % UE max Doppler frequency in Hz
  
 cdl = nrCDLChannel;
 cdl.DelayProfile = 'CDL-D';
-cdl.DelaySpread = 10e-9;
-%cdl.DelaySpread = 0;
+% cdl.DelaySpread = 10e-9;
+cdl.DelaySpread = 0;
 cdl.CarrierFrequency = fc;
-cdl.MaximumDopplerShift = fd;
-%cdl.MaximumDopplerShift = 0;
+% cdl.MaximumDopplerShift = fd;
+cdl.MaximumDopplerShift = 0;
 
 cdl.TransmitAntennaArray.Size = [1 1 1 1 1];
 cdl.ReceiveAntennaArray.Size = [1 8 1 1 1];
@@ -79,7 +80,7 @@ end
 
 disp("MSE: ");
 mean(mean((h-rxWaveform).^2))
-k = kron(p(tau(i), N, df), a(theta(i), M, d, lambda));
+% k = kron(p(tau(i), N, df), a(theta(i), M, d, lambda));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Function defs
