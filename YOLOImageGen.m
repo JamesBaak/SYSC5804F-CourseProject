@@ -7,6 +7,8 @@
 % By: Ben Earle (BenEarle@cmail.carleton.ca)                              %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 clear
+outputFile = "pathData.csv";
+% outputDir = "C:\Users\BenEa\Desktop\Datasets\ChannelImages\";
 
 %DEFN FROM PAPER ON NOMP
 c = physconst('lightspeed'); % speed of light in m/s
@@ -29,117 +31,120 @@ v = 15.0;                    % UE velocity in km/h
 
 fd = (v*1000/3600)/c*fc;     % UE max Doppler frequency in Hz
  
-CUSTOM = 1;
-
-cdl = nrCDLChannel;
-
-x = nrCDLChannel;
-x.DelayProfile = 'CDL-A';
-starterCDL = info(x);
-
-if CUSTOM
-    cdl.DelayProfile = 'custom';
-    cdl.PathDelays = starterCDL.PathDelays .* 1000; % [0 0.022 0.214 0.95] .* 1.0e-03;
-%     cdl.AveragePathGains = starterCDL.AveragePathGains; % [1 1 1 1];
-    cdl.AveragePathGains = ones(size(starterCDL.AveragePathGains)); % [1 1 1 1];
-    cdl.AnglesAoA = starterCDL.AnglesAoA; % [12 36 -27 -123];
-    cdl.AnglesZoA = starterCDL.AnglesZoA; % [12 -36 27 123];
-    cdl.AnglesAoD = starterCDL.AnglesAoD; % [12 36 27 123];
-    cdl.AnglesZoD = starterCDL.AnglesZoD; % [-12 36 27 -123];
-    cdl.HasLOSCluster = false; % default
-    % cdl.KFactorFirstCluster = 13.3; % default
-    cdl.AngleSpreads = [0 0 0 0]; % [ASD ASA ZSD ZSA] 
-    cdl.XPR = 10; % default, crosspolarization power in db
-    cdl.NumStrongestClusters = 0; % default
-    
-    
-%     cdl.DelayProfile = 'custom';
-%     cdl.PathDelays = [0 5 10 12] .* 10^-5;
-% %     cdl.AveragePathGains = starterCDL.AveragePathGains + ones(size(starterCDL.AveragePathGains)); % [1 1 1 1];
-%     cdl.AveragePathGains = [15 -1 -12 -5]; % [1 1 1 1];
-%     cdl.AnglesAoA = [15 45 45 -45]; % [12 36 -27 -123];
-%     cdl.AnglesZoA = [15 45 90 -45]; % [12 -36 27 123];
-%     cdl.AnglesAoD = [0 0 0 0]; % [12 36 27 123];
-%     cdl.AnglesZoD = [0 0 0 0]; % [-12 36 27 -123];
-%     cdl.HasLOSCluster = false; % default
-%     % cdl.KFactorFirstCluster = 13.3; % default
-%     cdl.AngleSpreads = [0 0 0.0 0]; % [ASD ASA ZSD ZSA] 
-%     cdl.XPR = 0; % default, crosspolarization power in db
-%     cdl.NumStrongestClusters = 0; % default
-else
-    cdl.DelayProfile = 'CDL-A';
-    cdl.DelaySpread = 10e-9;
-    % cdl.DelaySpread = 0;
-    
-end
-
-% cdl.MaximumDopplerShift = 0;
-cdl.CarrierFrequency = fc;
-cdl.MaximumDopplerShift = fd;
-
-
-cdl.TransmitAntennaArray.Size = [1 1 1 1 1];
-cdl.ReceiveAntennaArray.Size = [1 M 1 1 1];
+MAX_PATH_COUNT = 10;
+CHANNEL_COUNT = 50;
 
 SR = 15.36e6;
 T = SR * 1e-3;
-cdl.SampleRate = SR;
-cdlinfo = info(cdl);
-Nt = cdlinfo.NumTransmitAntennas;
-Nr = cdlinfo.NumReceiveAntennas;
+
+Nt = 1;
+Nr = M;
+
+cdlList = randCdlProfile(CHANNEL_COUNT, MAX_PATH_COUNT, M, fc, fd, SR);
+
+x = ["Image, AOA, ZOA, Delays, Gains, NumPaths"];
+
+for i = 1:CHANNEL_COUNT
+    cdl = cdlList{i};
+    c = nrCarrierConfig;
+    c.NSizeGrid = N;
+    c.SubcarrierSpacing = 15;
+    c.NSlot = 1;
+    c.NFrame = 0;
+
+    txOne = ones(N*12,Nt);
+    txZero= zeros(N,Nt);
+ 
+    txWaveform = nrOFDMModulate(c,txOne);
+    % maxChDelay = ceil(max(chInfo.PathDelays*cdl.SampleRate)) + chInfo.ChannelFilterDelay;
+
+    chInfo = info(cdl);
 
 
-c = nrCarrierConfig;
-c.NSizeGrid = N;
-c.SubcarrierSpacing = 15;
-c.NSlot = 1;
-c.NFrame = 0;
+    % The first time we pass the signal through the CDL channel the first 7 
+    % subcarriers receive zero value on each antenna, I don't really understand
+    % why that is... Running it the second time does not have this issue.
+    [rxWaveform, pathGains] = cdl(txWaveform);
+    noise = db2mag(-65) .* complex(randn(size(rxWaveform)),randn(size(rxWaveform)));
+    rxWaveform = rxWaveform + noise;
 
-txOne= ones(N*12,Nt);
-txZero= zeros(N,Nt);
-
-txWaveform = nrOFDMModulate(c,txOne);
-% maxChDelay = ceil(max(chInfo.PathDelays*cdl.SampleRate)) + chInfo.ChannelFilterDelay;
-
-chInfo = info(cdl);
-
-
-% The first time we pass the signal through the CDL channel the first 7 
-% subcarriers receive zero value on each antenna, I don't really understand
-% why that is... Running it the second time does not have this issue.
-[rxWaveform, pathGains] = cdl(txWaveform);
-noise = db2mag(-400) .* complex(randn(size(rxWaveform)),randn(size(rxWaveform)));
-rxWaveform = rxWaveform + noise;
-
-rx = nrOFDMDemodulate(c,rxWaveform);
+    rx = nrOFDMDemodulate(c,rxWaveform);
 
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%.
-% YOLO PAPER IMAGE GENERATION
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%.
+    % YOLO PAPER IMAGE GENERATION
 
-% Oversampling factors
-alpha = 12;
-beta = 1;
+    % Oversampling factors
+    alpha = 12;
+    beta = 1;
 
-% Max after normalization
-delta = 1000;
+    % Max after normalization
+    delta = 2^12;
 
-% Received waveform Y 
-Y =  squeeze(rx).';
+    % Received waveform Y 
+    Y =  squeeze(rx).';
 
-% DFT Matricies
-U_theta = dftmtx(alpha * M);
-U_theta = U_theta(1:M,:);
-U_T = dftmtx(beta * N*12);
-U_T = U_T(1:N*12,:);
+    % DFT Matricies
+    U_theta = dftmtx(alpha * M);
+    U_theta = U_theta(1:M,:);
+    U_T = dftmtx(beta * N*12);
+    U_T = U_T(1:N*12,:);
 
-Y_bar = U_theta.' * Y * U_T;
+    Y_bar = U_theta.' * Y * U_T;
 
-Y_tilda = (delta/max(max(abs(Y_bar)))) .* abs(Y_bar);
-% Y_tilda = abs(Y_bar) .* 50;
-figure()
+    Y_tilda = (delta/max(max(abs(Y_bar)))) .* abs(Y_bar);
+    % Y_tilda = abs(Y_bar) .* 50;
+%     figure()
+% 
+%     image(Y_tilda);
+%     title(i)
 
-image(Y_tilda);
-title(cdl.DelayProfile)
+%     imwrite(repmat(uint8(Y_tilda), [1 1 3]), 'example.png');
+    imwrite(uint8(Y_tilda), sprintf('ChannelImages\\%d.png',i));
+    
+    x = [x sprintf('%d, %s, %s, %s, %s, %d',i, num2str(chInfo.AnglesAoA), num2str(chInfo.AnglesZoA), num2str(chInfo.PathDelays), num2str(chInfo.AveragePathGains), size(chInfo.AnglesZoA, 2))];
+    
+end
 
+
+fid = fopen( outputFile, 'w' );
+for i = 1 : length(x)
+    fprintf(fid, x(i) + "\n");
+end
+
+fclose(fid);
+
+function cdl = randCdlProfile(n, LMax, M, fc, fd, SR)
+    cdl = cell(1,n);
+    for i = 1:n
+        % Add 1/2 before rounding to int causing it to always round up.
+        % [0,1) -> 1, [1,2) -> 2, ..., [L-1, L) -> L
+        L = int64((rand(1,1)*LMax)+0.5);
+        cdl{i} = nrCDLChannel;
+
+        cdl{i}.CarrierFrequency = fc;
+        cdl{i}.MaximumDopplerShift = fd;
+        cdl{i}.SampleRate = SR;
+
+        cdl{i}.TransmitAntennaArray.Size = [1 1 1 1 1];
+        cdl{i}.ReceiveAntennaArray.Size = [1 M 1 1 1];
+        
+        cdl{i}.DelayProfile = 'custom';
+        cdl{i}.PathDelays = rand(1,L) .* 10^-4;
+    %     cdl.AveragePathGains = starterCDL.AveragePathGains + ones(size(starterCDL.AveragePathGains)); % [1 1 1 1];
+        cdl{i}.AveragePathGains = rand(1,L) *10; % [1 1 1 1];
+        cdl{i}.AnglesAoA = (rand(1,L)-0.5)*360;
+        cdl{i}.AnglesZoA = (rand(1,L)-0.5)*360;
+        cdl{i}.AnglesAoD = (rand(1,L)-0.5)*360; 
+        cdl{i}.AnglesZoD = (rand(1,L)-0.5)*360; 
+        cdl{i}.HasLOSCluster = false; % default
+        % cdl.KFactorFirstCluster = 13.3; % default
+        cdl{i}.AngleSpreads = rand(1,4)*2; % [ASD ASA ZSD ZSA] 
+        cdl{i}.XPR = 0; % default, crosspolarization power in db
+        cdl{i}.NumStrongestClusters = 0; % default
+        
+    end
+    
+    
+end
