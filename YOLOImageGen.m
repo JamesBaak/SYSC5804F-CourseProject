@@ -76,7 +76,7 @@ for i = 1:CHANNEL_COUNT
     % YOLO PAPER IMAGE GENERATION
 
     % Oversampling factors
-    alpha = 5;
+    alpha = 12;
     beta = 1;
 
     % Max after normalization
