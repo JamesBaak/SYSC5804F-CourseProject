@@ -71,7 +71,7 @@ anchorBoxes = {anchors(1:3,:)
     anchors(4:6,:)
     };
 % Create network
-net = darknet53; % Use darknet-53
+net = darknet53('Weights','None'); % Use darknet-53
 classNames = trainingDataTbl.Properties.VariableNames(2:end);
 lgraph = load('darknet_yolo.mat').lgraph_2;
 
