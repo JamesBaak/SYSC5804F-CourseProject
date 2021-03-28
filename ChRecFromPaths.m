@@ -78,8 +78,8 @@ for i = 1 : length(theta)
 %    h = h + gul(i) .* a(theta(i), M, d, lambda) * p(tau(i), N, df)';
 end
 
-disp("MSE: ");
-mean(mean((h-rxWaveform).^2))
+disp("RMSE: ");
+mean(mean(abs((h-rxWaveform).^2)))^1/2
 % k = kron(p(tau(i), N, df), a(theta(i), M, d, lambda));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

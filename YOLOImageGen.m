@@ -14,14 +14,14 @@ outputFile = "pathData.csv";
 c = physconst('lightspeed'); % speed of light in m/s
 fftPoints = 2048;
 df = 75000; %hz
-BW = 90 * 10^6; %hz
+BW = 90 * 7^6; %hz
 fc = 3.5 * 10^9; %hz
 pt = -20;% dbm (transmit power)
 lambda = c / fc; % carrier wavelength in m
 d = lambda / 2; % distance between antennas in m
 
-N = 128; % Sub-carrier count
-M = 128; % Antenna count
+N = 32; % Sub-carrier count
+M = 32; % Antenna count
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Simple ULA transmission
@@ -31,8 +31,8 @@ v = 15.0;                    % UE velocity in km/h
 
 fd = (v*1000/3600)/c*fc;     % UE max Doppler frequency in Hz
  
-MAX_PATH_COUNT = 5;
-CHANNEL_COUNT = 5;
+MAX_PATH_COUNT = 10;
+CHANNEL_COUNT = 500;
 
 SR = 15.36e6;
 T = SR * 1e-3;
@@ -42,7 +42,20 @@ Nr = M;
 
 cdlList = randCdlProfile(CHANNEL_COUNT, MAX_PATH_COUNT, M, fc, fd, SR);
 
-x = ["Image, AOA, ZOA, Delays, Gains, NumPaths, MaxPixel"];
+AoA_str = "";
+AoZ_str = "";
+T_str = "";
+g_str = "";
+
+for i = 1:MAX_PATH_COUNT 
+    AoA_str = strcat(AoA_str, "AoA_"+i, ",");
+    AoZ_str = strcat(AoZ_str, "AoZ_"+i, ",");
+    T_str   = strcat(T_str, "T_"+i, ",");
+    g_str   = strcat(g_str, "g_"+i, ",");
+end
+
+
+x = [strcat("Index,", AoA_str, AoZ_str, T_str, g_str, "NumPaths,MaxPixel")];
 
 for i = 1:CHANNEL_COUNT
     cdl = cdlList{i};
@@ -65,8 +78,9 @@ for i = 1:CHANNEL_COUNT
     % subcarriers receive zero value on each antenna, I don't really understand
     % why that is... Running it the second time does not have this issue.
     [rxWaveform, pathGains] = cdl(txWaveform);
-    noise = db2mag(-650) .* complex(randn(size(rxWaveform)),randn(size(rxWaveform)));
-    rxWaveform = rxWaveform + noise;
+    [rxWaveform, pathGains] = cdl(txWaveform);
+    noise = db2mag(-80) .* complex(randn(size(rxWaveform)),randn(size(rxWaveform)));
+%     rxWaveform = rxWaveform + noise;
 
     rx = nrOFDMDemodulate(c,rxWaveform);
 
@@ -80,7 +94,7 @@ for i = 1:CHANNEL_COUNT
     beta = 1;
 
     % Max after normalization
-    delta = 2^12;
+    delta = 2^10;
 
     % Received waveform Y 
     Y =  squeeze(rx).';
@@ -106,30 +120,37 @@ for i = 1:CHANNEL_COUNT
 %     imwrite(repmat(uint8(Y_tilda), [1 1 3]), 'example.png');
     imwrite(uint8(Y_tilda), sprintf('ChannelImages\\%d.png',i));
     
-    x = [x sprintf('%d, %s, %s, %s, %s, %d, %d %d',i, num2str(chInfo.AnglesAoA), num2str(chInfo.AnglesZoA), num2str(chInfo.PathDelays), num2str(chInfo.AveragePathGains), size(chInfo.AnglesZoA, 2), x_coord, y_coord(x_coord))];
+    delay_pad = padarray(chInfo.PathDelays, [0,MAX_PATH_COUNT-size(chInfo.PathDelays, 2)],0,"post");
+    AoA_pad   = padarray(chInfo.AnglesAoA, [0,MAX_PATH_COUNT-size(chInfo.AnglesAoA, 2)],0,"post");
+    ZoA_pad   = padarray(chInfo.AnglesZoA, [0,MAX_PATH_COUNT-size(chInfo.AnglesZoA, 2)],0,"post");
+    gain_pad  = padarray(chInfo.AveragePathGains, [0,MAX_PATH_COUNT-size(chInfo.AveragePathGains, 2)],-1000,"post");
+    
+    x = [x strcat(sprintf('%d,', i), sprintf('%f,' , AoA_pad), sprintf('%f,' , ZoA_pad), sprintf('%f,' , delay_pad.*1000), sprintf('%f,' , gain_pad), sprintf('%d, %d %d',  size(chInfo.AnglesZoA, 2), x_coord, y_coord(x_coord)))];
     
     % Test dominant path recovery
-    [height, width] = size(Y_tilda);
-    THETA_hat = 1-(y_coord(x_coord)/height);
-    T_hat = (x_coord/width);
+%     [height, width] = size(Y_tilda);
+%     THETA_hat = 1-(y_coord(x_coord)/height);
+%     T_hat = (x_coord/width);
     
 %     Y(X)
 %     X
 %      theta_hat = lambda / d * asind(THETA_hat)
 %      t_hat = T_hat / df
-
-    theta = lambda / d * asind(THETA_hat);
-    tau = T_hat / df;
-    gul = squeeze(pathGains(1,:,1,:));
+% 
+%     theta = lambda / d * asind(THETA_hat);
+%     tau = T_hat / df;
+%     gul = squeeze(pathGains(1,:,1,:));
 
 %     h = zeros(N, M);
 %     for i = 1 : length(theta)
 %          h = h + gul(i,:) .* kron(p(tau(i), N, df), a(theta(i), M, d, lambda)');
 %     end
     
-    h = gul(1,:) .* kron(p(tau, N*12, df), a(theta, M, d, lambda)');
-    mean(mean((h'-Y).^2))
-    size(chInfo.AnglesZoA, 2)
+%     h = gul .* kron(p(tau, N*12, df), a(theta, M, d, lambda)');
+%     mean(mean((h'-Y)))
+%     mean(mean((Y)))
+%     mean(mean((h')))
+%     size(chInfo.AnglesZoA, 2)
 end
 
 
@@ -174,7 +195,8 @@ function cdl = randCdlProfile(n, LMax, M, fc, fd, SR)
     for i = 1:n
         % Add 1/2 before rounding to int causing it to always round up.
         % [0,1) -> 1, [1,2) -> 2, ..., [L-1, L) -> L
-        L = int64((rand(1,1)*LMax)+0.5);
+%         L = int64((rand(1,1)*LMax)+0.5);
+        L = 5;
         cdl{i} = nrCDLChannel;
 
         cdl{i}.CarrierFrequency = fc;
@@ -187,7 +209,7 @@ function cdl = randCdlProfile(n, LMax, M, fc, fd, SR)
         cdl{i}.DelayProfile = 'custom';
         cdl{i}.PathDelays = rand(1,L) .* 10^-4;
     %     cdl.AveragePathGains = starterCDL.AveragePathGains + ones(size(starterCDL.AveragePathGains)); % [1 1 1 1];
-        cdl{i}.AveragePathGains = rand(1,L) *10; % [1 1 1 1];
+        cdl{i}.AveragePathGains = (rand(1,L)-0.5) * 30; % [1 1 1 1];
         cdl{i}.AnglesAoA = (rand(1,L)-0.5)*360;
         cdl{i}.AnglesZoA = (rand(1,L)-0.5)*360;
 %         cdl{i}.AnglesZoA = (ones(1,L))*90;
@@ -195,7 +217,7 @@ function cdl = randCdlProfile(n, LMax, M, fc, fd, SR)
         cdl{i}.AnglesZoD = (rand(1,L)-0.5)*360; 
         cdl{i}.HasLOSCluster = false; % default
         % cdl.KFactorFirstCluster = 13.3; % default
-        cdl{i}.AngleSpreads = rand(1,4)*1; % [ASD ASA ZSD ZSA] 
+        cdl{i}.AngleSpreads = [0 0 0 0]; %rand(1,4)*0; % [ASD ASA ZSD ZSA] 
         cdl{i}.XPR = 0; % default, crosspolarization power in db
         cdl{i}.NumStrongestClusters = 0; % default
         
