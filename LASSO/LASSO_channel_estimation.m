@@ -12,7 +12,7 @@ subcarriers = 52;
 antennas = 64;
 nPilots = 50;
 % =========================================================
-range = 25:50;
+range = 25:100;
 
 for k = range
     nPilots = k;
@@ -88,7 +88,7 @@ for k = range
     h_2 = makeComplex(hl);
     % =========================================================================
 
-    estiY = txWaveformA * h_2;
+    estiY = txWaveformA * h_1;
     MSEs(k - min(range) + 1) = abs(mean((rxWaveform - estiY).^2));
 %     disp(MSE)
 end
