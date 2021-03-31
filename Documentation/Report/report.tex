@@ -1,0 +1,84 @@
+\documentclass[conference, compsoc, onecolumn]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{subfigure}
+\usepackage{float}
+\usepackage{color,soul}
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+\renewcommand\thesection{\arabic{section}}
+\newcommand\norm[1]{\left\lVert#1\right\rVert}
+
+\graphicspath{ {./figures/} }
+
+\title{SYSC5804 Project: MIMO Channel Reconstruction\\
+{\footnotesize Prepared for Dr. Jun (Steed) Huang}
+
+}
+
+\author{\IEEEauthorblockN{James Baak}
+\IEEEauthorblockA{{Department of Systems and Computer Engineering} \\
+\textit{Carleton University}\\
+Ottawa, Ontario \\
+JamesBaak@cmail.carleton.ca\\
+101002918}
+\and
+\IEEEauthorblockN{Ben Earle}
+\IEEEauthorblockA{{Department of Systems and Computer Engineering} \\
+\textit{Carleton University}\\
+Ottawa, Ontario \\
+BenEarle@cmail.carleton.ca\\
+100970237}
+}
+
+\maketitle
+
+\begin{abstract}
+Reducing feedback and overhead for channel reconstruction in massive Multi-Input Multi-Output (m-MIMO) systems is an active problem in 5G wireless research \cite{Ye2018}. This report documents the author's SYSC5804 term project, implementing state-of-the-art channel reconstruction techniques and exploring new methods to reducing run-time, and/or increase accuracy. Two existing methods were implemented: the first is a regression based approach, using an algorithm called Least Absolute  Shrinkage  and  Selection  Operator (LASSO) \cite{Han2019}; the second transformed the received pilots into an image and used deep learning image processing algorithm You Only Look Once (YOLO) to extract path information \cite{Li2020}. Additionally, a new method is implemented using autokeras \cite{jin2019} to build and train a Deep Neural Network (DNN) to predict the path information directly from the channel images. The authors present the results of each approach, implementation challenges, and future work. All the code referenced in this report is available on GitHub \cite{git}.
+
+\end{abstract}
+
+\begin{IEEEkeywords}
+Channel Reconstruction, 5G, Simulation, Neural Networks
+\end{IEEEkeywords}
+
+\section{Introduction}
+\input{sections/introduction}
+
+\section{Background} \label{background}
+\input{sections/background}
+
+\section{Simulators} \label{sim}
+\input{sections/simulators}
+
+\section{LASSO} \label{lasso-main}
+\input{sections/LASSO}
+
+\section{Image Generation} \label{image-gen}
+\input{sections/image generation}
+
+\section{YOLO} \label{yolo-main}
+\input{sections/YOLO}
+
+\section{AutoKeras and DNN} \label{autodnn}
+\input{sections/DNN}
+
+
+\section{Conclusion}
+\input{sections/conclusion}
+
+\newpage
+\bibliographystyle{./bibliography/IEEEtran}
+\bibliography{./bibliography/IEEEabrv,references}
+
+
+\end{document}
